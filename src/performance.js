@@ -6,6 +6,7 @@ var PerformanceJS = {
     __timing_handler_api: function() {
         /*
             TODO: add how many resources where fetched
+                  add support for cookies to track following - user_1.page_1; user_1.page_2
 
             Method used to collect data from timing API.
             ua_redirect_time    - time taken to redirect to another resource
@@ -23,38 +24,16 @@ var PerformanceJS = {
         console.log('__timing_handler_api');
         var sData = {};
         var tData = window.performance.timing;
-        var navigationStart = tData['navigationStart'];
-        var unloadEventStart = tData['unloadEventStart'];
-        var unloadEventEnd = tData['unloadEventEnd'];
-        var redirectStart = tData['redirectStart'];
-        var redirectEnd = tData['redirectEnd'];
-        var fetchStart = tData['fetchStart'];
-        var domainLookupStart = tData['domainLookupStart'];
-        var domainLookupEnd = tData['domainLookupEnd'];
-        var connectStart = tData['connectStart'];
-        var connectEnd = tData['connectEnd'];
-        var secureConnectionStart = tData['secureConnectionStart'];
-        var requestStart = tData['requestStart'];
-        var responseStart = tData['responseStart'];
-        var responseEnd = tData['responseEnd'];
-        var domLoading = tData['domLoading'];
-        var domInteractive = tData['domInteractive'];
-        var domContentLoadedEventStart = tData['domContentLoadedEventStart'];
-        var domContentLoadedEventEnd = tData['domContentLoadedEventEnd'];
-        var domComplete = tData['domComplete'];
-        var loadEventStart = tData['loadEventStart'];
-        var loadEventEnd = tData['loadEventEnd'];
-
-        sData['ua_redirect_time'] = redirectEnd - redirectStart;
-        sData['ua_cache_time'] = domainLookupStart - fetchStart;
-        sData['net_dns_time'] = domainLookupEnd - domainLookupStart;
-        sData['net_tcp_time'] = connectEnd - connectStart;
-        sData['net_ttfb_time'] = responseStart - requestStart;
-        sData['net_download_time'] = responseEnd - responseStart;
-        sData['doc_load_time'] = domInteractive - domLoading;
-        sData['doc_complete_time'] = domComplete - domInteractive;
-        sData['total_time'] = domComplete - navigationStart;
-        sData['doc_name'] = window.location.href;
+        sData.ua_redirect_time = tData.redirectEnd - tData.redirectStart;
+        sData.ua_cache_time = tData.domainLookupStart - tData.fetchStart;
+        sData.net_dns_time = tData.domainLookupEnd - tData.domainLookupStart;
+        sData.net_tcp_time = tData.connectEnd - tData.connectStart;
+        sData.net_ttfb_time = tData.responseStart - tData.requestStart;
+        sData.net_download_time = tData.responseEnd - tData.responseStart;
+        sData.doc_load_time = tData.domInteractive - tData.domLoading;
+        sData.doc_complete_time = tData.domComplete - tData.domInteractive;
+        sData.total_time = tData.domComplete - tData.navigationStart;
+        sData.doc_name = window.location.href;
         return sData;
     },
 
@@ -73,7 +52,7 @@ var PerformanceJS = {
         */
         console.log('__collect');
         var sData = {};
-        if (window.hasOwnProperty('performance') && window.performance.timing) {
+        if (window.performance && window.performance.timing) {
             sData = this.__timing_handler_api();
         } else {
             sData = this.__timing_handler_fallback();
@@ -86,8 +65,8 @@ var PerformanceJS = {
             Create a request and send data to server
         */
         console.log('__update');
-        var sURL = 'http://localhost:8080/ajax';
-        var sMethod = 'POST';
+        var sURL = 'http://localhost:8080/rum';
+        var sMethod = 'GET';
         var sResponse = null;
         var cRequest = null;
         console.log(sData);
@@ -103,9 +82,9 @@ var PerformanceJS = {
                 sResponse = cRequest.responseText;
             }
         }
+        sURL += '?sData=' + encodeURIComponent(JSON.stringify(sData));
         cRequest.open(sMethod, sURL);
-        cRequest.setRequestHeader('Content-Type', 'application/json');
-        cRequest.send('sData=' + encodeURIComponent(sData));
+        cRequest.send();
         return sResponse;
     },
 
